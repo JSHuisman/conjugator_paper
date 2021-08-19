@@ -37,7 +37,7 @@ plot_dynamics_ggplot <- function(out, crit_times = NULL){
                                 breaks = .base_breaks()) +
     coord_cartesian(ylim = c(lowest_y_axis_val, max(out$tot)),
                     xlim = range(out$time)) +
-    ggplot2::theme_light() + ggplot2::theme(text = ggplot2::element_text(size=15),
+    ggplot2::theme_minimal() + ggplot2::theme(text = ggplot2::element_text(size=15),
                                             legend.position = c(0.7, 0.2)) +
     #annotation_logticks(base = 10, sides='l') +
     ggplot2::labs(x = "Time (h)", y = "Population size (CFU/ml)", color = "Population") +
@@ -100,7 +100,7 @@ plot_growth_rate_ggplot <- function(out, parms, crit_times = NULL){
     coord_cartesian(xlim = range(out$time)) +
     ggplot2::scale_color_manual(name = 'Growth rate', breaks = 'c1',
                        values = 'red', labels = expression(psi[max])) +
-    ggplot2::theme_light() + ggplot2::theme(text = ggplot2::element_text(size=15),
+    ggplot2::theme_minimal() + ggplot2::theme(text = ggplot2::element_text(size=15),
                           legend.position = c(0.8, 0.2)) +
     ggplot2::geom_hline(yintercept = c(parms["psi.R"], parms["psi.T"], parms["psi.D"]),
                         linetype = 'dashed') +
@@ -160,7 +160,7 @@ plot_conj_rate_ggplot <- function(out, parms, crit_times = NULL){
                        values = c('blue', 'lightblue'),
                        labels = c(expression(gamma[max]), expression(gamma[D]))) +
     ggplot2::labs(x = "Time (h)", y = "Conjugation rate (mL/(CFU*h))") +
-    ggplot2::theme_light() + ggplot2::theme(text = ggplot2::element_text(size=15),
+    ggplot2::theme_minimal() + ggplot2::theme(text = ggplot2::element_text(size=15),
                          legend.position = c(0.7, 0.8)) +
     ggplot2::geom_hline(yintercept = c(parms["gamma.d"], parms["gamma.t"]),
                         linetype = 'dashed') +
@@ -199,7 +199,7 @@ plot_crittimes_sweep <- function(data, id_cols = "ID"){
     scale_x_continuous(trans = 'log', breaks = .base_breaks()) +
     coord_cartesian(ylim = c(0, ceiling(max(crit_result[["min_tcrit"]])))) +
     labs(x = bquote("Ratio"~gamma[T]/gamma[D]), y = "Critical time", color = col_id) +
-    theme_light() + theme(text = element_text(size=15))
+    theme_minimal() + theme(text = element_text(size=15))
 
   return(crittimes_plot)
 }
@@ -248,7 +248,7 @@ boxplot_scan <- function(full_out, x_var, y_var, fill_var,
                      fill = full_out[[fill_var]]),
                  position=position_dodge(1)) +
     labs(x = x_var, y = y_var, fill = fill_var) +
-    theme_light() + theme(text = element_text(size=15))
+    theme_minimal() + theme(text = element_text(size=15))
 
   if (logplot){
     box_plot <- box_plot +

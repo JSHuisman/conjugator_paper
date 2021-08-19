@@ -129,7 +129,7 @@ create_config_df <- function(vars, growth_rates, gammas){
   return(config_df)
 }
 
-compute_model_scan <- function(config_df, t.vec, output_timepoints = c(21, 41, 81)){
+compute_model_scan <- function(config_df, t.vec, output_timepoints = c(21, 41, 81), psi_time = 20){
   full_out <- data.frame()
   crit_times <- data.frame()
   for (row_ind in 1:dim(config_df)[1]){
@@ -145,7 +145,7 @@ compute_model_scan <- function(config_df, t.vec, output_timepoints = c(21, 41, 8
     for (timepoint in output_timepoints){
       full_out <- rbind(full_out, c(parms, r0 = as.numeric(vars['r']),
                                     d0 = as.numeric(vars['d']), out[timepoint,],
-                                    psi.max = log(out$tot[timepoint]/out$tot[1])/(out$time[timepoint]-out$time[1])
+                                    psi.max = log(out$tot[psi_time]/out$tot[1])/(out$time[psi_time]-out$time[1])
       ))
       crit_times <- rbind(crit_times, estimate_crittime_from_sim(parms, vars, tol_factor = 10))
     }
