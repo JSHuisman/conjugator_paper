@@ -71,9 +71,9 @@ conj_rate_plot <- ggplot(NULL) +
                      values = col_palet[c(1,4,7,5,8,2)],
                      labels = c('T/D', 'T/(T+R)', bquote(abs(log('T'/sqrt('DR')))),
                                 bquote('T/DR'),
-                                bquote(gamma[Dmax]~'in mL/(CFUxHour)'),
-                                bquote(gamma[max]~'in mL/(CFUxHour)'))) +
-  labs(x = "Time (h)", y = "Simulated conjugation rate") +
+                                bquote(gamma[D]~'in mL/(CFUxHour)'),
+                                bquote(gamma~'in mL/(CFUxHour)'))) +
+  labs(x = "Time (h)", y = "Conjugation rate") +
   theme_minimal() + 
   theme(text = element_text(size=15))
 
@@ -110,16 +110,16 @@ exp_plot <- ggplot(result, aes(x = t, y = estimate, fill = method)) +
                       values = col_palet[c(1,4,7,5,2)],
                       labels = c('T/D', 'T/(T+R)', bquote(abs(log('T'/sqrt('DR')))),
                                  bquote('T/DR'),
-                                 bquote(gamma[Dmax]~'in mL/(CFUxHour)'),
-                                 bquote(gamma[max]~'in mL/(CFUxHour)'))) +
+                                 bquote(gamma[D]~'in mL/(CFUxHour)'),
+                                 bquote(gamma~'in mL/(CFUxHour)'))) +
   scale_colour_manual(name = 'Estimation method',
                      breaks = c('TD', 'T_RT', 'Gama', 'T_DR','SM'),
                      values = col_palet[c(1,4,7,5,2)],
                      labels = c('T/D', 'T/(T+R)', bquote(abs(log('T'/sqrt('DR')))),
                                 bquote('T/DR'),
-                                bquote(gamma[Dmax]~'in mL/(CFUxHour)'),
-                                bquote(gamma[max]~'in mL/(CFUxHour)'))) +
-  labs(y = 'Estimated conjugation rate', x = 'Time (h)') +
+                                bquote(gamma[D]~'in mL/(CFUxHour)'),
+                                bquote(gamma~'in mL/(CFUxHour)'))) +
+  labs(y = 'Conjugation rate', x = 'Time (h)') +
   theme_minimal() + 
   theme(text = element_text(size=15))
 

@@ -2,6 +2,12 @@
 ## FUNCTIONS FOR PLOTTING
 ## Authors: Jana S. Huisman & Sebastian Bonhoeffer
 ###########################################################
+col_palet <- c('#332288','#88CCEE',
+               '#44AA99','#117733',
+               '#999933','#DDCC77',
+               '#CC6677','#882255',
+               '#AA4499','#DDDDDD',
+               '#000000')
 
 #' Plotting overall dynamics with ggplot
 #'
@@ -33,15 +39,14 @@ plot_dynamics_ggplot <- function(out, crit_times = NULL){
   }
   # add scale, labels, legend
   dyn_plot  +
-    ggplot2::scale_y_continuous(trans = 'log', 
-                                breaks = .base_breaks()) +
-    coord_cartesian(ylim = c(lowest_y_axis_val, max(out$tot)),
-                    xlim = range(out$time)) +
+    coord_trans(y = 'log', ylim = c(lowest_y_axis_val, max(out$tot)),
+                xlim = range(out$time)) +
+    scale_y_continuous(breaks = .base_breaks()) +
     ggplot2::theme_minimal() + ggplot2::theme(text = ggplot2::element_text(size=15),
                                             legend.position = c(0.7, 0.2)) +
     #annotation_logticks(base = 10, sides='l') +
     ggplot2::labs(x = "Time (h)", y = "Population size (CFU/ml)", color = "Population") +
-    ggplot2::scale_colour_manual(values = c('red', 'blue', 'green'),
+    ggplot2::scale_colour_manual(values = col_palet[c(3,6,9)],
                         breaks = levels(out_molten$variable),
                         labels = c('Recipients', 'Donors', 'Transconjugants'))
 }
@@ -137,35 +142,41 @@ plot_growth_rate_ggplot <- function(out, parms, crit_times = NULL){
 #' @param crit_times A named list. Output of time_crit()
 #'
 #' @family plot functions
-plot_conj_rate_ggplot <- function(out, parms, crit_times = NULL){
-  SM_conj_result <- estimate_conj_from_sim(out, "SM", parms, exp_window = max(out$time))
-  ASM_conj_result <- estimate_conj_from_sim(out, "ASM", parms, exp_window = max(out$time))
-
-  lowest_y_axis_val <- min(c(parms["gamma.d"], parms["gamma.t"]))*10**-2
-  highest_y_axis_val <- max(c(parms["gamma.d"], parms["gamma.t"]))*10**2
+plot_conj_rate_ggplot <- function(out, parms, crit_times = NULL, methods = c("SM", "ASM")){
+  all_methods = c('TD', 'T_RT', 'Gama', 'T_DR','ASM', 'SM', 'Dionisio')
+  all_cols = col_palet[c(1,4,7,5,8,2,6)]
+  all_names = c('T/D', 'T/(T+R)', bquote(abs(log('T'/sqrt('DR')))),
+                bquote('T/DR'),
+                bquote(gamma[D]~'in mL/(CFUxHour)'),
+                bquote(gamma~'in mL/(CFUxHour)'),
+                bquote('T'/sqrt('DR')) )
   
-  gamma_plot <- ggplot2::ggplot(NULL) +
-    ggplot2::geom_point(ggplot2::aes(x = out$time[!is.na(SM_conj_result$estimate)],
-                            y = SM_conj_result$estimate[!is.na(SM_conj_result$estimate)],
-                            color = 'c1')) +
-    ggplot2::geom_point(ggplot2::aes(x = out$time[!is.na(ASM_conj_result$estimate)],
-                            y = ASM_conj_result$estimate[!is.na(ASM_conj_result$estimate)],
-                            color = 'c2')) +
-    ggplot2::scale_y_continuous(trans = 'log',
-                       breaks = .base_breaks()) +
-    coord_cartesian(ylim = c(lowest_y_axis_val, highest_y_axis_val),
-                    xlim = range(out$time)) +
-    ggplot2::scale_color_manual(name = 'Conjugation rate',
-                       breaks = c('c1', 'c2'),
-                       values = c('blue', 'lightblue'),
-                       labels = c(expression(gamma[max]), expression(gamma[D]))) +
-    ggplot2::labs(x = "Time (h)", y = "Conjugation rate (mL/(CFU*h))") +
-    ggplot2::theme_minimal() + ggplot2::theme(text = ggplot2::element_text(size=15),
-                         legend.position = c(0.7, 0.8)) +
-    ggplot2::geom_hline(yintercept = c(parms["gamma.d"], parms["gamma.t"]),
+  conj_result <- estimate_conj_from_sim(out, methods, parms, id_cols = 't')
+
+  conj_result <- conj_result %>%
+    mutate(t = as.numeric(levels(t))[t],
+           estimate = ifelse(method %in% c('Gama'), abs(estimate), estimate),
+           estimate = ifelse(estimate == 0, 1e-40, estimate))
+  
+  gamma_plot <- ggplot(NULL) +
+    geom_point(data = conj_result,
+               aes(x = t, y = estimate, color = method)) +
+    coord_trans(y = 'log', xlim = range(conj_result$t),
+                ylim = c(min(c(parms["gamma.d"], parms["gamma.t"]))*1e-2,
+                max(conj_result$estimate)) )+
+    scale_y_continuous(breaks = .base_breaks()) +
+    scale_color_manual(name = 'Estimation method',
+                       breaks = all_methods[which(all_methods %in% methods)],
+                       values = all_cols[which(all_methods %in% methods)],
+                       labels = all_names[which(all_methods %in% methods)]) +
+    labs(x = "Time (h)", y = "Conjugation rate") +
+    theme_minimal() + 
+    theme(text = element_text(size=15),
+          legend.position = 'right') +
+    geom_hline(yintercept = c(parms["gamma.d"], parms["gamma.t"]),
                         linetype = 'dashed') +
-    ggrepel::geom_text_repel(ggplot2::aes(x = max(out$time)-2,
-                                          y = c(parms["gamma.d"], parms["gamma.t"])),
+    geom_text_repel(aes(x = max(out$time)-2,
+                        y = c(parms["gamma.d"], parms["gamma.t"])),
                              label = c('gamma[D]', 'gamma[T]'), parse = TRUE)
   # add critical times
   if(is.list(crit_times)){
@@ -177,12 +188,52 @@ plot_conj_rate_ggplot <- function(out, parms, crit_times = NULL){
   gamma_plot
 }
 
+# plot_conj_rate_ggplot <- function(out, parms, crit_times = NULL){
+#   SM_conj_result <- estimate_conj_from_sim(out, "SM", parms, exp_window = max(out$time))
+#   ASM_conj_result <- estimate_conj_from_sim(out, "ASM", parms, exp_window = max(out$time))
+#   
+#   lowest_y_axis_val <- min(c(parms["gamma.d"], parms["gamma.t"]))*10**-2
+#   highest_y_axis_val <- max(c(parms["gamma.d"], parms["gamma.t"]))*10**2
+#   
+#   gamma_plot <- ggplot2::ggplot(NULL) +
+#     ggplot2::geom_point(ggplot2::aes(x = out$time[!is.na(SM_conj_result$estimate)],
+#                                      y = SM_conj_result$estimate[!is.na(SM_conj_result$estimate)],
+#                                      color = 'c1')) +
+#     ggplot2::geom_point(ggplot2::aes(x = out$time[!is.na(ASM_conj_result$estimate)],
+#                                      y = ASM_conj_result$estimate[!is.na(ASM_conj_result$estimate)],
+#                                      color = 'c2')) +
+#     coord_trans(y = 'log', ylim = c(lowest_y_axis_val, highest_y_axis_val),
+#                 xlim = range(out$time)) +
+#     scale_y_continuous(breaks = .base_breaks()) +
+#     ggplot2::scale_color_manual(name = 'Conjugation rate',
+#                                 breaks = c('c1', 'c2'),
+#                                 values = c('blue', 'lightblue'),
+#                                 labels = c(expression(gamma[max]), expression(gamma[D]))) +
+#     ggplot2::labs(x = "Time (h)", y = "Conjugation rate (mL/(CFU*h))") +
+#     ggplot2::theme_minimal() + ggplot2::theme(text = ggplot2::element_text(size=15),
+#                                               legend.position = c(0.7, 0.8)) +
+#     ggplot2::geom_hline(yintercept = c(parms["gamma.d"], parms["gamma.t"]),
+#                         linetype = 'dashed') +
+#     ggrepel::geom_text_repel(ggplot2::aes(x = max(out$time)-2,
+#                                           y = c(parms["gamma.d"], parms["gamma.t"])),
+#                              label = c('gamma[D]', 'gamma[T]'), parse = TRUE)
+#   # add critical times
+#   if(is.list(crit_times)){
+#     gamma_plot <- add_tcrit_to_plot(gamma_plot, crit_times,
+#                                     y_pos = 10**-2*min(c(parms["gamma.d"],
+#                                                          parms["gamma.t"])))
+#   }
+#   # plot the final result
+#   gamma_plot
+# }
+
 
 #################
 
-plot_crittimes_sweep <- function(data, id_cols = "ID"){
+plot_crittimes_sweep <- function(data, id_cols = "ID", verbose = T){
   # apply this to the summarised data [per groupby variable]
-  crit_result = scan_crit_time(data, tol_factor = 10, id_cols = id_cols, mult_seq = 10**seq(-2, 4, 0.1))
+  crit_result = scan_crit_time(data, tol_factor = 10, id_cols = id_cols, 
+                               mult_seq = 10**seq(-2, 4, 0.1), verbose = verbose)
 
   crit_result <- crit_result %>%
     mutate_at(c("gamma.T", "min_tcrit"), as.double) %>%
@@ -196,8 +247,8 @@ plot_crittimes_sweep <- function(data, id_cols = "ID"){
     geom_line(aes(x = crit_result[["gamma.T"]]/crit_result[["gamma.D"]],
                      y = crit_result[["min_tcrit"]],
                      color = crit_result[[col_id]] )) +
-    scale_x_continuous(trans = 'log', breaks = .base_breaks()) +
-    coord_cartesian(ylim = c(0, ceiling(max(crit_result[["min_tcrit"]])))) +
+    coord_trans(x = 'log', ylim = c(0, ceiling(max(crit_result[["min_tcrit"]]))) ) +
+    scale_x_continuous(breaks = .base_breaks()) +
     labs(x = bquote("Ratio"~gamma[T]/gamma[D]), y = "Critical time", color = col_id) +
     theme_minimal() + theme(text = element_text(size=15))
 

@@ -53,15 +53,16 @@
   return(df)
 }
 
-estimate_conj_from_sim <- function(out, method, parms = NULL, exp_window = 20, id_cols = 't'){
+estimate_conj_from_sim <- function(out, method, parms = NULL, exp_window = 20, 
+                                   id_cols = 't', verbose = T){
   data <- .sim_output_to_data(out, parms, exp_window)
 
-  result <- conjugator::estimate_conj_rate(data, method, id_cols)
+  result <- conjugator::estimate_conj_rate(data, method, id_cols, verbose = verbose)
   return(result)
 }
 
 
-estimate_crittime_from_sim <- function(parms, vars, tol_factor = 10, id_cols = 'ID'){
+estimate_crittime_from_sim <- function(parms, vars, tol_factor = 10, id_cols = 'ID', verbose = T){
   data = data.frame(as.list(c(parms, vars)))
   colnames(data) <- gsub('gamma.t', 'gamma.T', colnames(data)) %>% 
                  gsub('gamma.d', 'gamma.D', .) %>%
@@ -69,7 +70,7 @@ estimate_crittime_from_sim <- function(parms, vars, tol_factor = 10, id_cols = '
                  gsub('d', 'D.0', .) %>%
                  gsub('t', 'T.0', .)
 
-  result <- conjugator::estimate_crit_time(data, TRT = NULL, tol_factor, id_cols)
+  result <- conjugator::estimate_crit_time(data, TRT = NULL, tol_factor, id_cols, verbose = verbose)
   return(result)
 }
 
@@ -129,7 +130,7 @@ create_config_df <- function(vars, growth_rates, gammas){
   return(config_df)
 }
 
-compute_model_scan <- function(config_df, t.vec, output_timepoints = c(21, 41, 81), psi_time = 20){
+compute_model_scan <- function(config_df, t.vec, output_timepoints = c(21, 41, 81), psi_time = 20, verbose = T){
   full_out <- data.frame()
   crit_times <- data.frame()
   for (row_ind in 1:dim(config_df)[1]){
@@ -140,14 +141,18 @@ compute_model_scan <- function(config_df, t.vec, output_timepoints = c(21, 41, 8
                                              'gamma.t', 'gamma.d', 'q')])
     names(parms) <- c('psi.R', 'psi.T', 'psi.D',
                       'gamma.t', 'gamma.d', 'q')
+    other_cols <- config_df[row_ind, setdiff(colnames(config_df), c('r', 't', 'd', 'c',
+                                        'psi.R', 'psi.T', 'psi.D',
+                                       'gamma.t', 'gamma.d', 'q') )]
     
     out <- integrate_model(vars, t.vec, "model_ESM", parms)
     for (timepoint in output_timepoints){
       full_out <- rbind(full_out, c(parms, r0 = as.numeric(vars['r']),
                                     d0 = as.numeric(vars['d']), out[timepoint,],
-                                    psi.max = log(out$tot[psi_time]/out$tot[1])/(out$time[psi_time]-out$time[1])
-      ))
-      crit_times <- rbind(crit_times, estimate_crittime_from_sim(parms, vars, tol_factor = 10))
+                                    psi.max = log(out$tot[psi_time]/out$tot[1])/(out$time[psi_time]-out$time[1]),
+                                    other_cols)
+      )
+      crit_times <- rbind(crit_times, estimate_crittime_from_sim(parms, vars, tol_factor = 10, verbose = verbose))
     }
     
   }
@@ -155,9 +160,10 @@ compute_model_scan <- function(config_df, t.vec, output_timepoints = c(21, 41, 8
   return(list(full_out = full_out, crit_times = crit_times))
 }
 
-compute_estimates <- function(full_out){
+compute_estimates <- function(full_out, verbose = T){
   full_out <- .rename_fullout(full_out)
-  estimates <- conjugator::estimate_conj_rate(full_out, c("T_RT", "TD", "Gama", "ASM", "SM")) %>%
+  estimates <- conjugator::estimate_conj_rate(full_out, c("T_RT", "TD", "Gama", "ASM", "SM"),
+                                              verbose = verbose) %>%
     pivot_wider(id_cols = 'ID', 
                 names_from = 'method', values_from = 'estimate')
   
@@ -165,10 +171,10 @@ compute_estimates <- function(full_out){
   return(full_out)
 }
 
-compute_foldchange <- function(full_out){
+compute_foldchange <- function(full_out, verbose = T){
   
   if (!'ASM' %in% colnames(full_out)){
-    full_out <- compute_estimates(full_out)
+    full_out <- compute_estimates(full_out, verbose = verbose)
   }
   
   full_out['gammaD_fc'] <- full_out['ASM']/full_out['gamma.D']
