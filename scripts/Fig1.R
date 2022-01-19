@@ -43,7 +43,8 @@ crit_times <- estimate_crittime_from_sim(parms[i,], vars, tol_factor)
 simple_dyn_plot <- plot_dynamics_ggplot(out, crit_times) +
   scale_color_manual(breaks = c('r', 'd', 't'),
                      labels = c('Recipients', 'Donors', 'Transconjugants'),
-                     values = col_palet[c(3,6,9)])
+                     values = col_palet[c(3,6,9)]) +
+  geom_hline(yintercept = 1, linetype = 'dashed')
 simple_dyn_plot
 
 # ggsave(filename = paste0('../figures/',
@@ -72,7 +73,7 @@ conj_rate_plot <- ggplot(NULL) +
                      labels = c('T/D', 'T/(T+R)', bquote(abs(log('T'/sqrt('DR')))),
                                 bquote('T/DR'),
                                 bquote(gamma[D]~'in mL/(CFUxHour)'),
-                                bquote(gamma~'in mL/(CFUxHour)'))) +
+                                bquote(gamma[max]~'in mL/(CFUxHour)'))) +
   labs(x = "Time (h)", y = "Conjugation rate") +
   theme_minimal() + 
   theme(text = element_text(size=15))
@@ -111,14 +112,14 @@ exp_plot <- ggplot(result, aes(x = t, y = estimate, fill = method)) +
                       labels = c('T/D', 'T/(T+R)', bquote(abs(log('T'/sqrt('DR')))),
                                  bquote('T/DR'),
                                  bquote(gamma[D]~'in mL/(CFUxHour)'),
-                                 bquote(gamma~'in mL/(CFUxHour)'))) +
+                                 bquote(gamma[max]~'in mL/(CFUxHour)'))) +
   scale_colour_manual(name = 'Estimation method',
                      breaks = c('TD', 'T_RT', 'Gama', 'T_DR','SM'),
                      values = col_palet[c(1,4,7,5,2)],
                      labels = c('T/D', 'T/(T+R)', bquote(abs(log('T'/sqrt('DR')))),
                                 bquote('T/DR'),
                                 bquote(gamma[D]~'in mL/(CFUxHour)'),
-                                bquote(gamma~'in mL/(CFUxHour)'))) +
+                                bquote(gamma[max]~'in mL/(CFUxHour)'))) +
   labs(y = 'Conjugation rate', x = 'Time (h)') +
   theme_minimal() + 
   theme(text = element_text(size=15))
